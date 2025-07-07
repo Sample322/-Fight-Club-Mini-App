@@ -3,7 +3,6 @@ services:
     name: fight-club-server
     runtime: node
     region: oregon
-    plan: free
     rootDir: server
     buildCommand: npm install
     startCommand: node src/app.js
@@ -12,5 +11,3 @@ services:
         value: production
       - key: PORT
         value: 3001
-      - key: NODE_VERSION
-        value: 18
