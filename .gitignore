@@ -27,3 +27,4 @@ Thumbs.db
 .vscode/
 .idea/
 '@ | Set-Content -Path .gitignore -Encoding UTF8
+.vercel
