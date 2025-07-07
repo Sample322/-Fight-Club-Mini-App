@@ -1,8 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  base: '/',
   server: {
     host: true,
     port: 5173,
@@ -10,15 +12,21 @@ export default defineConfig({
       protocol: 'ws',
       host: 'localhost',
       port: 5173
-    },
-    // Разрешаем любые хосты для разработки
-    allowedHosts: [
-      '.ngrok-free.app',
-      '.ngrok.io', 
-      '.loca.lt',
-      '.localtunnel.me',
-      'localhost',
-      '127.0.0.1'
-    ]
+    }
+  },
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    sourcemap: false,
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true
+      }
+    }
+  },
+  define: {
+    'process.env': {}
   }
 })
