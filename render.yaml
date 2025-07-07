@@ -1,13 +1,16 @@
 services:
   - type: web
     name: fight-club-server
-    env: node
+    runtime: node
     region: oregon
     plan: free
-    buildCommand: cd server && npm install
-    startCommand: cd server && npm start
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node src/app.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 3001
+      - key: NODE_VERSION
+        value: 18
