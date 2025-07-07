@@ -1,15 +1,26 @@
 import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Provider } from 'react-redux';
-import { initMiniApp, useLaunchParams } from '@telegram-apps/sdk-react';
 import store from './store/store';
 import HomePage from './pages/HomePage';
 import LobbyPage from './pages/LobbyPage';
 import GamePage from './pages/GamePage';
+import { initTelegramWebApp } from './services/telegram';
 
 function App() {
   useEffect(() => {
-    initMiniApp();
+    // Отладка
+    console.log('Telegram WebApp available:', !!window.Telegram?.WebApp);
+    console.log('Init data:', window.Telegram?.WebApp?.initData);
+    console.log('User:', window.Telegram?.WebApp?.initDataUnsafe?.user);
+    
+    // Инициализация
+    const tg = initTelegramWebApp();
+    if (tg) {
+      console.log('Telegram Web App initialized successfully');
+      // Показываем версию
+      
+    }
   }, []);
 
   return (

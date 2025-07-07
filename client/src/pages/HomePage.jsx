@@ -1,51 +1,97 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { motion } from 'framer-motion';
-import { useLaunchParams, useInitData } from '@telegram-apps/sdk-react';
 import { loginStart, loginSuccess, loginFailure } from '../store/userSlice';
 import { connectWithAuth } from '../services/socket';
+import { getTelegramWebApp, getTelegramUser, getTelegramInitData } from '../services/telegram';
 import api from '../services/api';
 
 const HomePage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { isAuthenticated, user, stats, loading } = useSelector(state => state.user);
-  const initData = useInitData();
-  const launchParams = useLaunchParams();
+  const [isDevMode, setIsDevMode] = useState(false);
 
   useEffect(() => {
-    // Автоматическая авторизация через Telegram
-    if (initData && !isAuthenticated) {
+    const authenticateUser = async () => {
+      const tg = getTelegramWebApp();
+      const initData = getTelegramInitData();
+      
+      // Проверяем, запущено ли в Telegram
+      if (!tg || !initData) {
+        console.log('Not running in Telegram, using dev mode');
+        setIsDevMode(true);
+        
+        // Режим разработки - используем тестового пользователя
+        const testUser = {
+          id: 'test-user-' + Math.random().toString(36).substr(2, 9),
+          telegram_id: 123456789,
+          username: 'testuser',
+          first_name: 'Test',
+          last_name: 'User'
+        };
+        
+        dispatch(loginSuccess({
+          user: testUser,
+          token: 'dev-token',
+          telegramUser: testUser
+        }));
+        
+        connectWithAuth(testUser.id);
+        return;
+      }
+
+      try {
+        dispatch(loginStart());
+        
+        // Отправляем данные Telegram для валидации
+        const response = await api.post('/auth/telegram', {
+          initData: initData
+        });
+        
+        const { token, user } = response.data;
+        const telegramUser = getTelegramUser();
+        
+        dispatch(loginSuccess({
+          user,
+          token,
+          telegramUser
+        }));
+        
+        connectWithAuth(user.id);
+        
+      } catch (error) {
+        console.error('Authentication error:', error);
+        
+        // В случае ошибки переходим в dev режим
+        if (error.response?.status === 401) {
+          setIsDevMode(true);
+          const testUser = {
+            id: 'test-user-' + Math.random().toString(36).substr(2, 9),
+            telegram_id: 123456789,
+            username: 'testuser',
+            first_name: 'Test',
+            last_name: 'User'
+          };
+          
+          dispatch(loginSuccess({
+            user: testUser,
+            token: 'dev-token',
+            telegramUser: testUser
+          }));
+          
+          connectWithAuth(testUser.id);
+        } else {
+          dispatch(loginFailure(error.message));
+        }
+      }
+    };
+
+    if (!isAuthenticated) {
       authenticateUser();
     }
-  }, [initData]);
-
-  const authenticateUser = async () => {
-    try {
-      dispatch(loginStart());
-      
-      // Отправляем initData на сервер для валидации
-      const response = await api.post('/auth/telegram', {
-        initData: launchParams.initDataRaw
-      });
-      
-      const { token, user } = response.data;
-      
-      dispatch(loginSuccess({
-        user,
-        token,
-        telegramUser: initData.user
-      }));
-      
-      // Подключаемся к сокетам
-      connectWithAuth(user.id);
-      
-    } catch (error) {
-      console.error('Authentication error:', error);
-      dispatch(loginFailure(error.message));
-    }
-  };
+  }, [isAuthenticated, dispatch]);
 
   const startRandomGame = () => {
     navigate('/lobby?mode=random');
@@ -66,6 +112,17 @@ const HomePage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white p-4">
       <div className="max-w-4xl mx-auto">
+        {/* Индикатор режима разработки */}
+        {isDevMode && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-yellow-600 text-black text-center p-2 rounded mb-4 text-sm"
+          >
+            ⚠️ Режим разработки - Telegram авторизация недоступна
+          </motion.div>
+        )}
+
         {/* Заголовок */}
         <motion.div
           className="text-center mb-8 pt-8"
@@ -89,13 +146,9 @@ const HomePage = () => {
           >
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-4">
-                {initData?.user?.photoUrl && (
-                  <img
-                    src={initData.user.photoUrl}
-                    alt="Avatar"
-                    className="w-16 h-16 rounded-full"
-                  />
-                )}
+                <div className="w-16 h-16 rounded-full bg-gray-600 flex items-center justify-center text-2xl">
+                  👤
+                </div>
                 <div>
                   <h2 className="text-2xl font-bold">
                     {user.first_name} {user.last_name}
